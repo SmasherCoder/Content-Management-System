@@ -64,23 +64,23 @@ function addEmployee() {
   inquirer
     .prompt([
       {
-        name: "firstname",
+        name: "Firstname",
         type: "input",
         message: "Enter their first name ",
       },
       {
-        name: "lastname",
+        name: "Lastname",
         type: "input",
         message: "Enter their last name ",
       },
       {
-        name: "role",
+        name: "Role",
         type: "list",
         message: "What is their role? ",
         choices: selectRole(),
       },
       {
-        name: "choice",
+        name: "Manager",
         type: "rawlist",
         message: "Whats their managers name?",
         choices: selectManager(),
@@ -88,12 +88,12 @@ function addEmployee() {
     ])
     .then(function (val) {
       //gets roleId from array generated in selectRole() function
-      var roleId = roleArr.indexOf(val.role) + 1;
+      var roleId = roleArr.indexOf(val.Role) + 1;
       //gets managerID from array generated in selectManager() function 
-      var managerId = managersArr.indexOf(val.choice) + 1;
+      var managerId = managersArr.indexOf(val.Manager) + 1;
       db.query(
         "INSERT INTO employee (first_name, last_name, role_id, manager_id) values (?, ?, ?, ?);",
-        [val.firstname, val.lastname, roleId, managerId],
+        [val.Firstname, val.Lastname, roleId, managerId],
         function (err) {
           if (err) throw err;
           console.table(val);
@@ -123,7 +123,7 @@ function selectManager() {
     function (err, res) {
       if (err) throw err;
       for (var i = 0; i < res.length; i++) {
-        managersArr.push(res[i].first_name);
+        managersArr.push(res[i].first_name + " " + res[i].last_name);
       }
     }
   );
@@ -208,16 +208,10 @@ function updateEmployee() {
         message: "Why are you updating? ",
       },
       {
-        name: "firstName",
-        type: "list",
-        message: "What is the employee's first name? ",
-        choices: firstName(),
-      },
-      {
-        name: "lastName",
+        name: "name",
         type: "list",
         message: "What is the employee's name? ",
-        choices: lastName(),
+        choices: Name(),
       },
       {
         name: "role",
@@ -228,47 +222,30 @@ function updateEmployee() {
     ])
     .then(function (val) {
       var roleId = roleArr.indexOf(val.role) + 1;
-      console.log(roleId + "test");
-      console.log(val.firstName + "test");
-      console.log(val.lastName + "test");
+      var nameId = nameArr.indexOf(val.name) + 1;
       db.query(
-        "UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?;",
-        [roleId, val.firstname, val.lastName],
-        function (err, res) {
+        'UPDATE employee SET role_id = ? WHERE id = ?;',
+        [roleId, nameId],
+        function (err) {
           if (err) throw err;
           console.table(val);
-          console.log(res)
           startPrompt();
         }
       );
     });
 }
-var firstnameArr = [];
-function firstName() {
+var nameArr = [];
+function Name() {
   db.query(
     "SELECT * FROM employee",
     function (err, res) {
       if (err) throw err;
       for (var i = 0; i < res.length; i++) {
-        firstnameArr.push(res[i].first_name);
+        nameArr.push(res[i].first_name + " " + res[i].last_name);
       }
     });
-  return firstnameArr;
+  return nameArr;
 }
-var lastnameArr = [];
-function lastName() {
-  db.query(
-    "SELECT * FROM employee",
-    function (err, res) {
-      if (err) throw err;
-      for (var i = 0; i < res.length; i++) {
-        lastnameArr.push(res[i].last_name);
-      }
-    }
-  );
-  return lastnameArr;
-}
-
 //============= View All Employees ==========================//
 function viewAllEmployees() {
   db.query(
