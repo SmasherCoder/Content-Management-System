@@ -228,12 +228,16 @@ function updateEmployee() {
     ])
     .then(function (val) {
       var roleId = roleArr.indexOf(val.role) + 1;
+      console.log(roleId + "test");
+      console.log(val.firstName + "test");
+      console.log(val.lastName + "test");
       db.query(
-        "UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?",
+        "UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?;",
         [roleId, val.firstname, val.lastName],
-        function (err) {
+        function (err, res) {
           if (err) throw err;
           console.table(val);
+          console.log(res)
           startPrompt();
         }
       );
