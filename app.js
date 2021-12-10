@@ -10,6 +10,7 @@ db.connect((err) => {
 });
 
 function startPrompt() {
+  console.log("--Employee Tracker--");
   inquirer
     .prompt([
       {
@@ -20,10 +21,11 @@ function startPrompt() {
           "1. Add Employee?",
           "2. Add Role?",
           "3. Add Department?",
-          "4. Update Employee?",
+          "4. Update Employee Role and Manager?",
           "5. View All Employees?",
-          "6. View All Employee's By Roles?",
-          "7. View all Emplyees By Departments?",
+          "6. View All Roles?",
+          "7. View all Departments?",
+          "8. View all Employees By Departments?",
         ],
       },
     ])
@@ -49,12 +51,16 @@ function startPrompt() {
           viewAllEmployees();
           break;
 
-        case "6. View All Employee's By Roles?":
-          viewEmpRoles();
+        case "6. View All Roles?":
+          viewRoles();
           break;
 
-        case "7. View all Emplyees By Departments?":
+        case "7. View all Departments?":
           viewAllDepartments();
+          break;
+
+        case "8. View all Employees By Departments?":
+          viewAllEmpDepartments();
           break;
       }
     });
@@ -66,12 +72,12 @@ function addEmployee() {
       {
         name: "Firstname",
         type: "input",
-        message: "Enter their first name ",
+        message: "Enter their first name? ",
       },
       {
         name: "Lastname",
         type: "input",
-        message: "Enter their last name ",
+        message: "Enter their last name? ",
       },
       {
         name: "Role",
@@ -82,7 +88,7 @@ function addEmployee() {
       {
         name: "Manager",
         type: "rawlist",
-        message: "Whats their managers name?",
+        message: "What's their managers name?",
         choices: selectManager(),
       },
     ])
@@ -90,22 +96,35 @@ function addEmployee() {
       //gets roleId from array generated in selectRole() function
       var roleId = roleArr.indexOf(val.Role) + 1;
       //gets managerID from array generated in selectManager() function 
-      var managerId = managersArr.indexOf(val.Manager) + 1;
-      db.query(
-        "INSERT INTO employee (first_name, last_name, role_id, manager_id) values (?, ?, ?, ?);",
-        [val.Firstname, val.Lastname, roleId, managerId],
-        function (err) {
-          if (err) throw err;
-          console.table(val);
-          startPrompt();
-        }
-      );
+      var managerId = managersArr.indexOf(val.Manager);
+      var managerIndex = managersIdArr[managerId];
+      if (val.Manager === "None") {
+        db.query(
+          "INSERT INTO employee (first_name, last_name, role_id, manager_id) values (?, ?, ?, Null);",
+          [val.Firstname, val.Lastname, roleId],
+          function (err) {
+            if (err) throw err;
+            console.table(val);
+            startPrompt();
+          }
+        );
+      } else {
+        console.log(managerIndex);
+        db.query(
+          "INSERT INTO employee (first_name, last_name, role_id, manager_id) values (?, ?, ?, ?);",
+          [val.Firstname, val.Lastname, roleId, managerIndex],
+          function (err) {
+            if (err) throw err;
+            console.table(val);
+            startPrompt();
+          }
+        );
+      }
     });
 }
-//Select Role Queries Role Title for Add Employee Prompt
+//selectRole Queries Role Title for Add Employee Prompt
 var roleArr = [];
 function selectRole() {
-
   db.query("SELECT * FROM role", function (err, res) {
     if (err) throw err;
     for (var i = 0; i < res.length; i++) {
@@ -114,21 +133,39 @@ function selectRole() {
   });
   return roleArr;
 }
-//Select Role Queries The Managers for Add Employee Prompt
+//selectManager Queries Managers for Add Employee and Update Employee Prompt
 var managersArr = [];
+var managersIdArr = [];
 function selectManager() {
-
   db.query(
-    "SELECT first_name, last_name FROM employee WHERE manager_id IS NULL",
+    "SELECT id, first_name, last_name FROM employee WHERE manager_id IS NULL",
     function (err, res) {
       if (err) throw err;
       for (var i = 0; i < res.length; i++) {
         managersArr.push(res[i].first_name + " " + res[i].last_name);
+        managersIdArr.push(res[i].id);
+      }
+      managersArr.push("None");
+    }
+  );
+  return managersIdArr, managersArr;
+};
+//findManagerId Builds array with manager ids to set the manager id 
+
+function selectManagerId() {
+  db.query(
+    "SELECT id FROM employee WHERE manager_id IS NULL",
+    function (err, res) {
+      if (err) throw err;
+      for (var i = 0; i < res.length; i++) {
+        managersIdArr.push(res[i].id);
+        console.log(res[i].id);
       }
     }
   );
-  return managersArr;
-}
+  return managersIdArr;
+};
+
 //Add Employee Role
 function addRole() {
   inquirer
@@ -148,7 +185,7 @@ function addRole() {
         type: "list",
         message: "What is their department? ",
         choices: selectDepartment(),
-      }
+      },
     ])
     .then(function (res) {
       var deptId = deptArr.indexOf(res.Department) + 1;
@@ -203,35 +240,56 @@ function updateEmployee() {
   inquirer
     .prompt([
       {
-        name: "update",
+        name: "Update",
         type: "input",
         message: "Why are you updating? ",
       },
       {
-        name: "name",
+        name: "Name",
         type: "list",
         message: "What is the employee's name? ",
         choices: Name(),
       },
       {
-        name: "role",
+        name: "Role",
         type: "list",
         message: "What is the employees new title? ",
         choices: selectRole(),
       },
+      {
+        name: "Manager",
+        type: "list",
+        message: "What's their managers name?",
+        choices: selectManager(),
+      },
     ])
     .then(function (val) {
-      var roleId = roleArr.indexOf(val.role) + 1;
-      var nameId = nameArr.indexOf(val.name) + 1;
-      db.query(
-        'UPDATE employee SET role_id = ? WHERE id = ?;',
-        [roleId, nameId],
-        function (err) {
-          if (err) throw err;
-          console.table(val);
-          startPrompt();
-        }
-      );
+      var roleId = roleArr.indexOf(val.Role) + 1;
+      var nameId = nameArr.indexOf(val.Name) + 1;
+      //gets managerID from array generated in selectManager() function 
+      var managerId = managersArr.indexOf(val.Manager);
+      var managerIndex = managersIdArr[managerId];
+      if (val.Manager === "None") {
+        db.query(
+          "UPDATE employee SET role_id = ?, manager_id = null WHERE id = ?;",
+          [roleId, nameId],
+          function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            startPrompt();
+          }
+        );
+      } else {
+        db.query(
+          "UPDATE employee SET role_id = ?, manager_id = ? WHERE id = ?;",
+          [roleId, managerIndex, nameId],
+          function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            startPrompt();
+          }
+        );
+      }
     });
 }
 var nameArr = [];
@@ -246,10 +304,10 @@ function Name() {
     });
   return nameArr;
 }
-//============= View All Employees ==========================//
+//View All Employees
 function viewAllEmployees() {
   db.query(
-    "SELECT employee.first_name, employee.last_name, role.title, role.salary, department.name, CONCAT(e.first_name, ' ' ,e.last_name) AS Manager FROM employee INNER JOIN role on role.id = employee.role_id INNER JOIN department on department.id = role.department_id left join employee e on employee.manager_id = e.id;",
+    "SELECT employee.first_name AS First_name, employee.last_name AS Last_name, role.title AS Job_title, role.salary AS Salary, department.name AS Department, CONCAT(e.first_name, ' ' ,e.last_name) AS Manager FROM employee INNER JOIN role on role.id = employee.role_id INNER JOIN department on department.id = role.department_id left join employee e on employee.manager_id = e.id;",
     function (err, res) {
       if (err) throw err;
       console.table(res);
@@ -257,25 +315,36 @@ function viewAllEmployees() {
     }
   );
 }
-//============= View All Roles ==========================//
-function viewEmpRoles() {
+//View All Roles
+function viewRoles() {
   db.query(
-    "SELECT employee.first_name, employee.last_name, role.title AS Title FROM employee JOIN role ON employee.role_id = role.id;",
+    "SELECT role.id AS Job_id, role.title AS Job_title, role.salary AS Salary, department.name AS Department FROM role INNER JOIN department on role.department_id=department.id;",
     function (err, res) {
       if (err) throw err;
       console.table(res);
       startPrompt();
     }
   );
-}
-//============= View All Employees By Departments ==========================//
+};
+//View All Departments
 function viewAllDepartments() {
   db.query(
-    "SELECT employee.first_name, employee.last_name, department.name AS Department FROM employee JOIN role ON employee.role_id = role.id JOIN department ON role.department_id = department.id ORDER BY employee.id;",
+    "SELECT id AS Dept_id, name AS Dept_name FROM department;",
     function (err, res) {
       if (err) throw err;
       console.table(res);
       startPrompt();
     }
   );
-}
+};
+//View All Employees By Departments
+function viewAllEmpDepartments() {
+  db.query(
+    "SELECT employee.first_name AS First_name, employee.last_name AS Last_name, department.name AS Department FROM employee JOIN role ON employee.role_id = role.id JOIN department ON role.department_id = department.id ORDER BY department.id;",
+    function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      startPrompt();
+    }
+  );
+};
