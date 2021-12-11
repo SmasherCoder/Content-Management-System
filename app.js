@@ -25,7 +25,7 @@ function startPrompt() {
           "5. View All Employees?",
           "6. View All Roles?",
           "7. View all Departments?",
-          "8. View all Employees By Departments?",
+          "8. View all Employees By Department?",
         ],
       },
     ])
@@ -43,7 +43,7 @@ function startPrompt() {
           addDepartment();
           break;
 
-        case "4. Update Employee?":
+        case "4. Update Employee Role and Manager?":
           updateEmployee();
           break;
 
@@ -59,7 +59,7 @@ function startPrompt() {
           viewAllDepartments();
           break;
 
-        case "8. View all Employees By Departments?":
+        case "8. View all Employees By Department?":
           viewAllEmpDepartments();
           break;
       }
@@ -87,7 +87,7 @@ function addEmployee() {
       },
       {
         name: "Manager",
-        type: "rawlist",
+        type: "list",
         message: "What's their managers name?",
         choices: selectManager(),
       },
@@ -109,7 +109,6 @@ function addEmployee() {
           }
         );
       } else {
-        console.log(managerIndex);
         db.query(
           "INSERT INTO employee (first_name, last_name, role_id, manager_id) values (?, ?, ?, ?);",
           [val.Firstname, val.Lastname, roleId, managerIndex],
@@ -125,6 +124,9 @@ function addEmployee() {
 //selectRole Queries Role Title for Add Employee Prompt
 var roleArr = [];
 function selectRole() {
+  if (roleArr.length > 0) {
+    roleArr = [];
+  }
   db.query("SELECT * FROM role", function (err, res) {
     if (err) throw err;
     for (var i = 0; i < res.length; i++) {
@@ -134,9 +136,17 @@ function selectRole() {
   return roleArr;
 }
 //selectManager Queries Managers for Add Employee and Update Employee Prompt
+//
 var managersArr = [];
+//array to get id for managers
 var managersIdArr = [];
 function selectManager() {
+  if (managersArr.length > 0) {
+    managersArr = [];
+  }
+  if (managersIdArr.length > 0) {
+    managersIdArr = [];
+  }
   db.query(
     "SELECT id, first_name, last_name FROM employee WHERE manager_id IS NULL",
     function (err, res) {
@@ -150,21 +160,6 @@ function selectManager() {
   );
   return managersIdArr, managersArr;
 };
-//findManagerId Builds array with manager ids to set the manager id 
-
-function selectManagerId() {
-  db.query(
-    "SELECT id FROM employee WHERE manager_id IS NULL",
-    function (err, res) {
-      if (err) throw err;
-      for (var i = 0; i < res.length; i++) {
-        managersIdArr.push(res[i].id);
-        console.log(res[i].id);
-      }
-    }
-  );
-  return managersIdArr;
-};
 
 //Add Employee Role
 function addRole() {
@@ -173,7 +168,7 @@ function addRole() {
       {
         name: "Title",
         type: "input",
-        message: "What is the roles Title?",
+        message: "What is the new Role?",
       },
       {
         name: "Salary",
@@ -183,18 +178,18 @@ function addRole() {
       {
         name: "Department",
         type: "list",
-        message: "What is their department? ",
+        message: "What is their Department? ",
         choices: selectDepartment(),
       },
     ])
-    .then(function (res) {
-      var deptId = deptArr.indexOf(res.Department) + 1;
+    .then(function (val) {
+      var deptId = deptArr.indexOf(val.Department) + 1;
       db.query(
         "INSERT INTO role (title, salary, department_id) values (?, ?, ?);",
-        [res.Title, res.Salary, deptId],
+        [val.Title, val.Salary, deptId],
         function (err) {
           if (err) throw err;
-          console.table(res);
+          console.table(val);
           startPrompt();
         }
       );
@@ -203,6 +198,9 @@ function addRole() {
 //selectDepartment function for addRole function
 var deptArr = [];
 function selectDepartment() {
+  if (deptArr.length > 0) {
+    deptArr = [];
+  }
   db.query(
     "SELECT * FROM department",
     function (err, res) {
@@ -220,16 +218,16 @@ function addDepartment() {
       {
         name: "name",
         type: "input",
-        message: "What Department would you like to add?",
+        message: "What is the new Department?",
       },
     ])
-    .then(function (res) {
-      var query = db.query(
+    .then(function (val) {
+      db.query(
         "INSERT INTO department (name) values (?)",
-        [res.name],
+        [val.name],
         function (err) {
           if (err) throw err;
-          console.table(res);
+          console.table(val);
           startPrompt();
         }
       );
@@ -253,7 +251,7 @@ function updateEmployee() {
       {
         name: "Role",
         type: "list",
-        message: "What is the employees new title? ",
+        message: "What is the employee's new title? ",
         choices: selectRole(),
       },
       {
@@ -292,8 +290,12 @@ function updateEmployee() {
       }
     });
 }
+//function to get a list of all employee names
 var nameArr = [];
 function Name() {
+  if (nameArr.length > 0) {
+    nameArr = [];
+  }
   db.query(
     "SELECT * FROM employee",
     function (err, res) {
