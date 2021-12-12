@@ -11,7 +11,7 @@
   * [Tests](#tests)
   * [Questions](#questions)
 
-  ##Video Walkthrough
+  ## Video Walkthrough
   https://youtu.be/7tjeUBbf5Z8
 
   ## Project Image
