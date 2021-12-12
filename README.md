@@ -10,7 +10,10 @@
   * [Contributing](#contributing)
   * [Tests](#tests)
   * [Questions](#questions)
-  
+
+  ##Video Walkthrough
+  https://youtu.be/7tjeUBbf5Z8
+
   ## Project Image
   ![Screenshot of Project](.\emptrack.jpg)
   
